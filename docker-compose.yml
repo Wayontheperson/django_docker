@@ -1,0 +1,115 @@
+# docker-compose.yml
+version: "3.9"
+services:
+    db:
+        image: postgres
+        volumes:
+          - postgres_data:/var/lib/postgresql/data/
+        environment:
+          POSTGRES_USER: docker 
+          POSTGRES_PASSWORD: /run/secrets/db_password
+          POSTGRES_DB: backend
+        ports:
+          - 5432:5432
+        expose:
+          - 5432
+
+        secrets:
+          - POSTGRES_PASSWORD
+            
+
+        healthcheck:
+          test: pg_isready -U docker -d backend
+          interval: 10s
+          timeout: 3s
+          retries: 3
+
+
+    nginx:
+        container_name: nginx
+        build: ./nginx
+        image: djangoweb/nginx
+        restart: always
+        ports:
+          - "8080:80"
+        volumes:
+          - ./djangoweb:/srv/compose_test
+          - ./log:/var/log/nginx
+        depends_on:
+          - django
+
+    django: 
+        container_name: django
+        build: ./djangoweb
+        image: djangoweb/django
+        restart: always
+        command: uwsgi --ini uwsgi.ini
+        ports:
+          - 8000:8000
+        expose: 
+          - 8000
+        volumes:
+          - ./djangoweb:/srv/compose_test
+          - ./log:/var/log/uwsgi
+        depends_on:
+          db:
+            condition: service_healthy
+          redis:
+            condition: service_healthy
+        env_file:
+          - ./.env
+
+    celery: 
+        container_name: celery
+        build: ./djangoweb
+        image: djangoweb/django
+        restart: always
+        command: celery -A djangoweb worker -l info
+        volumes:
+          - ./djangoweb:/srv/compose_test
+        depends_on:
+          - django
+        env_file:
+          - ./.env
+
+    redis:
+        container_name: redis
+        image: redis
+        volumes:
+          - redis_data:/var/lib/redis/data/
+        expose:
+          - 6379
+        healthcheck:
+          test: redis-cli ping
+          interval: 10s
+          timeout: 3s
+          retries: 3
+
+    flower:
+        container_name: flower
+        image: mher/flower
+        environment:
+          - CELERY_BROKER_URL = 'redis://redis:6379/0'
+          - FLOWER_PORT = 5555
+        restart: always
+        volumes:
+          - flower_data:/var/lib/flower/data/
+        expose:
+          - 5555
+        ports:
+          - 5555:5555
+        command: celery --broker=redis://redis:6379/0 flower --port=5555
+        depends_on:
+          - redis
+          - celery
+secrets:
+  POSTGRES_PASSWORD:
+    file: ./db_password.txt
+
+volumes:
+    postgres_data:
+      driver: local
+    flower_data:
+      driver: local
+    redis_data:
+      driver: local
