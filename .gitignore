@@ -1,3 +1,11 @@
-.env
-.pyc
-log
+#files
+*.env
+*.pyc
+.gitmessage
+*.txt
+#directories
+log/
+.vscode/
+compose/
+env_test/
+
