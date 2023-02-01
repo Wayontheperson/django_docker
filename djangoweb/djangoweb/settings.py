@@ -20,13 +20,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# SECRET_KEY = 'django-insecure-2%odg3%igcj-q&%2%1js1-9yb9zu)2)4ub@-$(v9r6zx^^cgw0'
 SECRET_KEY = os.environ.get("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-# ALLOWED_HOSTS = ["211.168.94.210"]
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS").split()
 
 
@@ -85,9 +83,9 @@ DATABASES = {
         'OPTIONS':{
             'options': "-c search_path=django,test"
         },
-        "NAME": "backend",
-        "USER": "docker",
-        "PASSWORD": "admin123",
+        "NAME": os.environ.get("POSTGRES_DB"),
+        "USER": os.environ.get("POSTGRES_USER"),
+        "PASSWORD": os.environ.get("POSTGRES_PASSWORD"),
         "HOST": "db",  # set in docker-compose.yml
         "PORT": 5432,  # default postgres port
     }
