@@ -43,8 +43,6 @@ services:
     image: djangoweb/django
     restart: always
     command: uwsgi --ini uwsgi.ini
-    ports:
-      - 8000:8000
     expose:
       - 8000
     volumes:
@@ -54,6 +52,23 @@ services:
       db:
         condition: service_healthy
       redis:
+        condition: service_healthy
+    env_file:
+      - ./.env
+    environment:
+      POSTGRES_PASSWORD: /run/secrets/db_password
+    secrets:
+      - POSTGRES_PASSWORD
+
+  debug:
+    container_name: debug_django
+    image: djangoweb/django
+    restart: always
+    command: python manage.py runserver 0.0.0.0:8000 --nothreading --noreload
+    volumes:
+      - ./djangoweb:/src/compose_test
+    depends_on:
+      db:
         condition: service_healthy
     env_file:
       - ./.env
