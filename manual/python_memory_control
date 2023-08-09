@@ -1,0 +1,64 @@
+weak_ref module
+
+
+####
+class Foo:
+    def __init__(self, name):
+        self.name = name
+        self.f = None
+    def __del__(self):
+        self.f = None
+        print(f"{self.name}(0x{id(self):016X}) is being destroyed.")
+
+--- result ---
+x =Foo("x")
+y =Foo("y")
+x.f = y
+y.f = x
+
+del x
+del y
+
+x,y not destroyed 
+because x,y is circular reference
+####
+
+# This 
+
+import weakref 
+
+class Foo:
+    def __init__(self, name):
+        self.name = name
+        self._f = None
+
+    @property
+    def f(self):
+        if self._f is None:
+            return None
+        return self._f()
+
+    @f.setter
+    def f(self, obj):
+        if obj is None:
+            self._f = None
+        else:
+            self._f = weakref.ref(obj)
+
+    def __del__(self):
+        self._f = None
+        print(f"{self.name}(0x{id(self):016X}) is being destroyed.")
+
+--- result ---
+x =Foo("x")
+y =Foo("y")
+x.f = y
+y.f = x
+
+del x
+del y
+
+x(0x00007F2BA429C310) is being destroyed.
+y(0x00007F2BA429C1C0) is being destroyed.
+
+x,y are destroyed.
